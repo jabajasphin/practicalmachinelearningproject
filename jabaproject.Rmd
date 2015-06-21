@@ -1,0 +1,60 @@
+---
+title: "Practical Machine Learning Project"
+author: "E.T.Jaba Jasphin"
+date: "June 21, 2015"
+output: html_document
+---
+
+In this project, my goal is to determine how well the participants are doing the barbell lifts and to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. 
+The required Libraries are loded below
+
+```{r, echo=TRUE,message=FALSE} 
+library(caret)
+library(ggplot2)
+library(kernlab)
+set.seed(33245)
+```
+For reading only the required data the following commands were used
+
+```{r, echo=TRUE,message=FALSE}
+training<-read.csv("pml-training.csv")
+testing<-read.csv("pml-testing.csv")
+
+trainingdata<-c("accel_belt_x","accel_belt_y","accel_belt_z","accel_arm_x","accel_arm_y","accel_arm_z","accel_dumbbell_x","accel_dumbbell_y","accel_dumbbell_z","accel_forearm_x","accel_forearm_y","accel_forearm_z","user_name","classe")
+testingdata<-c("accel_belt_x","accel_belt_y","accel_belt_z","accel_arm_x","accel_arm_y","accel_arm_z","accel_dumbbell_x","accel_dumbbell_y","accel_dumbbell_z","accel_forearm_x","accel_forearm_y","accel_forearm_z","user_name")
+
+training1<-training[,trainingdata]
+testing1<-testing[,testingdata]
+```
+
+Since our goal is to determine how well a participant is doing the barbell lifts, I have separated the data based on the user name and Created data partition for training and testing. 
+```{r, echo=TRUE,message=FALSE}
+x3<-subset(training1,user_name=="charles")
+trainingcharles1<-x3[,-13]
+inTraincharles<-createDataPartition(y=trainingcharles1$classe,p=0.75,list=FALSE);
+
+trainingcharles<-trainingcharles1[inTraincharles,]
+testingcharles<-trainingcharles1[-inTraincharles,]
+```
+Feature plot was created for some parameters which i have chosen for Charles.
+```{r, echo=TRUE,message=FALSE}
+featurePlot(x=trainingcharles[,c("accel_dumbbell_x","accel_dumbbell_y","accel_dumbbell_z","accel_forearm_x","accel_forearm_y")],y=trainingcharles$classe)
+```
+
+Model was created using the method rpart and gbm. If iam choosing rpart method accuracy was very less.So i have chosen the method gbm.For cross validation K-fold method was chosen and preprocessing was used with center and scale method.
+
+```{r, echo=TRUE,message=FALSE}
+fitControl<-trainControl(method="repeatedcv",number=10,repeats=10)
+
+modelFitcharles<-train(classe~.,data=trainingcharles,preProcess=c("center","scale"),trControl=fitControl,method="gbm",verbose=FALSE);
+outputcharles<-predict(modelFitcharles,newdata=testingcharles)
+confusionMatrix(testingcharles$classe,outputcharles)
+```
+
+Output for the person Charles in the given testing set is predicted as follows
+```{r, echo=TRUE,message=FALSE}
+charles_classe<-predict(modelFitcharles,newdata=testing1[10,])
+print(charles_classe)
+```
+The above is the predicted classe for Charles in the testing set.
+
